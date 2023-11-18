@@ -4,6 +4,7 @@ from transformers import DistilBertTokenizerFast
 from transformers import DistilBertForSequenceClassification
 import pandas as pd
 import os
+import nltk
 nltk.download('stopwords')
 nltk.download('punkt')
 from nltk.corpus import stopwords
