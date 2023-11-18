@@ -219,7 +219,7 @@ def second_page():
 
         # Check if the button is clicked
         if refresh_button:
-            st.experimental_rerun()
+            st.rerun()
 
 def show_model_metrics():
     st.markdown('## Model Metrics & Analysis')
