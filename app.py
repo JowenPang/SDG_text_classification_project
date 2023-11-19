@@ -22,13 +22,6 @@ DEVICE = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 #cache to load model
 @st.cache_data
 def get_model():
-#   model = DistilBertForSequenceClassification.from_pretrained("distilbert-base-uncased", num_labels=17)
-#   model.to(DEVICE)
-#   # Load the model weights
-#   # model_path = 'exp3/sdg_distilbert_epoch5_exp3.pt'
-#   model_path = 'exp2/sdg_distilbert_epoch5.pt'
-#   model.load_state_dict(torch.load(model_path, map_location=DEVICE))
-
   model = DistilBertForSequenceClassification.from_pretrained("JowenPang/SDG-DistilBERT")
   model.to(DEVICE)
 
@@ -126,7 +119,7 @@ def first_page():
         st.write("")  # Add an empty line
         st.write("")
         analyze_button = st.button('Analyze')
-        refresh_button = st.button("Refresh")
+        # refresh_button = st.button("Refresh")
 
     if text_input and analyze_button :
 
@@ -147,8 +140,8 @@ def first_page():
             sdg_cols[i].write(f"Probability: {round(top3_values[i],3)}")
 
     # Check if the button is clicked
-    if refresh_button:
-        st.experimental_rerun()
+    # if refresh_button:
+        # st.rerun()
 
 def second_page():
     # UI part
@@ -215,11 +208,11 @@ def second_page():
 
         button_cols = st.columns(2)
         button_cols[0].download_button(label="Download data as csv",data=csv,file_name="results.csv")
-        refresh_button = button_cols[1].button("Refresh")
+        # refresh_button = button_cols[1].button("Refresh")
 
         # Check if the button is clicked
-        if refresh_button:
-            st.rerun()
+        # if refresh_button:
+            # st.rerun()
 
 def show_model_metrics():
     st.markdown('## Model Metrics & Analysis')
