@@ -276,9 +276,9 @@ def show_model_metrics():
     st.markdown('## Model Metrics & Analysis')
 
     # Paths to files
-    metrics_csv_path = 'exp2/training_metrics_epoch5.csv'
-    confusion_matrix_image_path = "exp2/confusion_matrix.png"
-    metrics_plot_image_path = "exp2/metrics_plot.png"
+    metrics_csv_path = 'exp3/training_metrics_epoch5.csv'
+    confusion_matrix_image_path = "exp3/confusion_matrix.png"
+    metrics_plot_image_path = "exp3/metrics_plot.png"
 
     # Check if files exist
     if not os.path.exists(metrics_csv_path):
