@@ -152,50 +152,55 @@ def first_page():
             if not text_input:
                 st.warning("Please enter text to analyze.")
             else:
-                
+                start_time = time.time()
                 text = preprocess_text(text_input)
-                top3 = predict(model, tokenizer, text, DEVICE)
 
-                top3_index = top3.indices[0].tolist()
-                top3_values = top3.values[0].tolist()
-                icon_images = [get_image(top3_index[i]) for i in range(len(top3_index)) if round(top3_values[i], 3) > 0]
+                if len(text.split()) < 10:  # Check if preprocessed text has fewer than 10 words
+                    st.warning("Please enter a meaningful text with more than 10 words for accurate analysis.")
+                else:
+                    top3 = predict(model, tokenizer, text, DEVICE)
 
-                st.subheader('Predictions:')
-                st.write(f'Number of preprocessed tokens : {len(text)}')
+                    top3_index = top3.indices[0].tolist()
+                    top3_values = top3.values[0].tolist()
+                    icon_images = [get_image(top3_index[i]) for i in range(len(top3_index)) if round(top3_values[i], 3) > 0]
+                    end_time = time.time()
 
-                # Add a text informing the user about the token limit
-                if len(text) > 512:
-                    st.info("Note: The model will only process the first 512 words due to BERT token limit.")
+                    st.subheader('Predictions:')
+                    time_taken = end_time - start_time
+                    st.write(f'Time taken for prediction: {time_taken:.2f} seconds')
+                    st.write(f'Number of preprocessed tokens : {len(text)}')
 
-                sdg_cols = st.columns(5)
+                    # Add a text informing the user about the token limit
+                    if len(text) > 512:
+                        st.info("Note: The model will only process the first 512 words due to BERT token limit.")
 
-                for i in range(len(icon_images)):
-                    sdg_cols[i].image(icon_images[i], caption=f"Predicted Label: Goal {top3_index[i]+1}", width=100)
-                    sdg_cols[i].write(f"Probability: {round(top3_values[i], 3)}")
+                    sdg_cols = st.columns(5)
 
-                st.success("Analysis completed successfully.")
+                    for i in range(len(icon_images)):
+                        sdg_cols[i].image(icon_images[i], caption=f"Predicted Label: Goal {top3_index[i]+1}", width=100)
+                        sdg_cols[i].write(f"Probability: {round(top3_values[i], 3)}")
 
-        # Check if the button is clicked
-        # if refresh_button:
-        #     session_state.text_input = ""
-        #     session_state.analyzed = False
-        #     st.rerun()
+                    st.success("Analysis completed successfully.")
+
 
     except Exception as e:
         st.error(f"An error occurred: {str(e)}")
 
 def second_page():
     try:
+
+        if "final_data" not in st.session_state:
+            st.session_state.final_data = False
         # UI part
         st.markdown('## Batch Prediction')
-
-        # Your upload Excel and table output page content goes here
-        uploaded_file = st.file_uploader("Upload Excel File", type=["xlsx", "csv"])
 
         @st.cache_data
         def convert_df(df):
             # IMPORTANT: Cache the conversion to prevent computation on every rerun
             return df.to_csv(index=False).encode('utf-8')
+
+        # Your upload Excel and table output page content goes here
+        uploaded_file = st.file_uploader("Upload Excel File", type=["xlsx", "csv"])
 
         if uploaded_file is not None:
             # Check the file extension
@@ -223,51 +228,49 @@ def second_page():
             # Ask user to select the text column
             text_column = st.selectbox("Select the Text Column", data.columns)
 
-            if text_column not in data.columns:
-                st.warning(f"The selected text column '{text_column}' doesn't exist in the file. Please choose a valid column.")
-                return
-
-            # Display the selected text column
-            st.subheader(f"Selected Text Column: {text_column}")
             
             # Button to confirm the selection
             if st.button("Confirm Selection"):
-                data = data[[text_column]]
+                st.session_state.final_data = True
+                
 
-                start_time = time.time()
-                data['First Prediction'], data['Second Prediction'], data['Third Prediction'] = zip(
-                    *data[text_column].apply(get_single_prediction))
-                end_time = time.time()
+        if st.session_state.final_data:
+            data = data[[text_column]]
 
-                st.subheader('Predictions:')
-                time_taken = end_time - start_time
-                st.write(f'Time taken for prediction: {time_taken:.2f} seconds')
+            # Check if most values in the column have a reasonable string length
+            if data[text_column].str.len().mean() < 20:  # Adjust threshold as needed
+                st.warning(f"The selected column '{text_column}' might contain mostly numbers or short codes. Please select a column with meaningful text.")
+                st.session_state.final_data = False
+                return
+            
+            start_time = time.time()
+            data['First Prediction'], data['Second Prediction'], data['Third Prediction'] = zip(
+                *data[text_column].apply(get_single_prediction))
+            end_time = time.time()
 
-                # Define the number of rows to display per page
-                rows_per_page = 10
+            st.subheader('Predictions:')
+            time_taken = end_time - start_time
+            st.write(f'Time taken for prediction: {time_taken:.2f} seconds')
+            # Define the number of rows to display per page
+            rows_per_page = 10
 
-                # Calculate the number of pages
-                num_pages = len(data) // rows_per_page + 1
+            # Calculate the number of pages
+            num_pages = len(data) // rows_per_page + 1
 
-                # Create a Streamlit page selection widget
-                page_number = st.number_input("Page", 1, num_pages, 1)
+            # Create a Streamlit page selection widget
+            page_number = st.number_input("Page", 1, num_pages, 1)
 
-                # Calculate the start and end row indices for the current page
-                start_idx = (page_number - 1) * rows_per_page
-                end_idx = start_idx + rows_per_page
+            # Calculate the start and end row indices for the current page
+            start_idx = (page_number - 1) * rows_per_page
+            end_idx = start_idx + rows_per_page
 
-                # Display the DataFrame for the current page
-                st.dataframe(data.iloc[start_idx:end_idx])
+            # Display the DataFrame for the current page
+            st.dataframe(data.iloc[start_idx:end_idx])
 
-                csv = convert_df(data)
+            csv = convert_df(data)
 
-                button_cols = st.columns(2)
-                button_cols[0].download_button(label="Download data as csv", data=csv, file_name="results.csv")
-                # refresh_button = button_cols[1].button("Refresh")
-
-                # Check if the button is clicked
-                # if refresh_button:
-                #     st.rerun()
+            button_cols = st.columns(2)
+            button_cols[0].download_button(label="Download data as csv", data=csv, file_name="results.csv")
 
     except Exception as e:
         st.error(f"An error occurred: {str(e)}")
@@ -276,9 +279,9 @@ def show_model_metrics():
     st.markdown('## Model Metrics & Analysis')
 
     # Paths to files
-    metrics_csv_path = 'exp3/training_metrics_epoch5.csv'
-    confusion_matrix_image_path = "exp3/confusion_matrix.png"
-    metrics_plot_image_path = "exp3/metrics_plot.png"
+    metrics_csv_path = 'exp2/training_metrics_epoch5.csv'
+    confusion_matrix_image_path = "exp2/confusion_matrix.png"
+    metrics_plot_image_path = "exp2/metrics_plot.png"
 
     # Check if files exist
     if not os.path.exists(metrics_csv_path):
